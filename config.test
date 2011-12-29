@@ -1,0 +1,7 @@
+{
+	"smtpaddr": "127.0.0.1",
+	"smtpport": 25,
+	"httpaddr": "127.0.0.1",
+	"httpport": 2580,
+	"static_dev": true
+}

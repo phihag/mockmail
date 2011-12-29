@@ -1,0 +1,8 @@
+{
+	"smtpaddr": "",
+	"smtpport": 25,
+	"httpaddr": "127.0.0.1",
+	"httpport": 2580,
+	"chroot": true,
+	"dropuser": "mocksmtp"
+}
