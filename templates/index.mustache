@@ -1,0 +1,15 @@
+
+<table class="mailtable">
+<thead>
+<tr><th>From</th><th>To</th><th>Subject</th>
+</thead>
+<tbody>
+{{#emails}}
+  <tr>
+    <td><a href="/mails/{{id}}">{{from}}</a></td>
+    <td><a href="/mails/{{id}}">{{to}}</a></td>
+    <td><a href="/mails/{{id}}">{{subject}}</a></td>
+  </a></tr>
+{{/emails}}
+</tbody>
+</table>
