@@ -14,6 +14,7 @@ import pwd
 import re
 import smtpd
 import tempfile
+import time
 import threading
 from optparse import OptionParser
 
@@ -57,6 +58,36 @@ def _readIds(ids, fnCalc, mapContent=None, ondemand=False):
 		if mapContent is None:
 			mapContent = lambda x:x
 		return dict((fid, mapContent(_readfile(fnCalc(fid)))) for fid in ids)
+
+# From http://docs.python.org/library/datetime.html#tzinfo-objects
+# A class capturing the platform's idea of local time.
+_STDOFFSET = datetime.timedelta(seconds = -time.timezone)
+if time.daylight:
+	_DSTOFFSET = datetime.timedelta(seconds = -time.altzone)
+else:
+	_DSTOFFSET = _STDOFFSET
+_DSTDIFF = _DSTOFFSET - _STDOFFSET
+class _LocalTimezone(datetime.tzinfo):
+    def utcoffset(self, dt):
+        if self._isdst(dt):
+            return _DSTOFFSET
+        else:
+            return _STDOFFSET
+    def dst(self, dt):
+        if self._isdst(dt):
+            return _DSTDIFF
+        else:
+            return datetime.timedelta(0)
+    def tzname(self, dt):
+        return time.tzname[self._isdst(dt)]
+    def _isdst(self, dt):
+        tt = (dt.year, dt.month, dt.day,
+              dt.hour, dt.minute, dt.second,
+              dt.weekday(), 0, 0)
+        stamp = time.mktime(tt)
+        tt = time.localtime(stamp)
+        return tt.tm_isdst > 0
+_Local = _LocalTimezone()									
 
 
 class MailStore(object):
@@ -112,7 +143,9 @@ class MockSmtpServer(smtpd.SMTPServer):
 		htmlBody = cgi.escape(re.sub('.{80}', lambda m: m.group(0) + '\n', rawBody))
 		htmlBody = re.sub('https?://([a-zA-Z.0-9/\-_?;=]|&amp;)+', lambda m: '<a href="' + m.group(0) + '">' + m.group(0) + '</a>', htmlBody)
 
-		
+		receivedAt = datetime.datetime.now(_Local)
+		receivedAtStr = receivedAt.strftime('%Y-%m-%d %H:%M:%S %Z')
+
 		mail = {
 			'peer_ip': peer[0],
 			'peer_port': peer[1],
@@ -123,6 +156,7 @@ class MockSmtpServer(smtpd.SMTPServer):
 			'rawheader': rawHeader,
 			'rawbody': rawBody,
 			'htmlbody': htmlBody,
+			'receivedAt': receivedAtStr,
 			'bodies': [{'body':submessage.get_payload()} for submessage in msg.walk()]
 		}
 		self._ms.add(mail)
@@ -166,7 +200,7 @@ class _MocksmtpHttpRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
 	def do_GET(self):
 		if self.path == '/':
-			mails = self.server.ms.mails
+			mails = [m.copy() for m in self.server.ms.mails]
 			for i,m in enumerate(mails):
 				m['id'] = str(i)
 			self._serve_template('index', {'emails': mails, 'title': 'mocksmtpserver'})
