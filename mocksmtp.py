@@ -3,6 +3,7 @@
 
 import BaseHTTPServer
 import asyncore
+import cgi
 import datetime
 import email.parser
 import grp
@@ -10,6 +11,7 @@ import json
 import mimetypes
 import os
 import pwd
+import re
 import smtpd
 import tempfile
 import threading
@@ -106,7 +108,10 @@ class MockSmtpServer(smtpd.SMTPServer):
 			except ValueEror:
 				rawHeader = data
 				rawBody = ''
-		
+
+		htmlBody = cgi.escape(re.sub('.{80}', lambda m: m.group(0) + '\n', rawBody))
+		htmlBody = re.sub('https?://([a-zA-Z.0-9/\-_?;=]|&amp;)+', lambda m: '<a href="' + m.group(0) + '">' + m.group(0) + '</a>', htmlBody)
+
 		
 		mail = {
 			'peer_ip': peer[0],
@@ -117,6 +122,7 @@ class MockSmtpServer(smtpd.SMTPServer):
 			'subject': msg['subject'],
 			'rawheader': rawHeader,
 			'rawbody': rawBody,
+			'htmlbody': htmlBody,
 			'bodies': [{'body':submessage.get_payload()} for submessage in msg.walk()]
 		}
 		self._ms.add(mail)

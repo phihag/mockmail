@@ -4,3 +4,4 @@ dt {float: left; margin-right: 0.8em; min-width: 3em;}
 .header_raw {margin-bottom: 2em;}
 
 .raw {white-space: pre; font-family: monospace;}
+.body {white-space: pre;}
