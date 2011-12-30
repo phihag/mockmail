@@ -4,6 +4,7 @@
 import BaseHTTPServer
 import asyncore
 import datetime
+import email.parser
 import grp
 import json
 import mimetypes
@@ -15,6 +16,9 @@ import threading
 from optparse import OptionParser
 
 import pystache # If this fails, execute $ pip install pystache
+
+_TEMPLATES = ('root', 'index', 'mail',)
+_STATIC_FILES = ('mocksmtp.css', 'jquery-1.7.1.min.js', 'mocksmtp.js', )
 
 
 def _readfile(fn):
@@ -52,6 +56,7 @@ def _readIds(ids, fnCalc, mapContent=None, ondemand=False):
 			mapContent = lambda x:x
 		return dict((fid, mapContent(_readfile(fnCalc(fid)))) for fid in ids)
 
+
 class MailStore(object):
 	""" Threadsafe mail storage class """
 	def __init__(self):
@@ -85,13 +90,34 @@ class MockSmtpServer(smtpd.SMTPServer):
 		smtpd.SMTPServer.__init__(self, (localaddr, port), None)
 
 	def process_message(self, peer, mailfrom, rcpttos, data):
+		feedParser = email.parser.FeedParser()
+		feedParser.feed(data)
+		msg = feedParser.close()
+		
+		try:
+			p = data.index('\r\n\r\n')
+			rawHeader = data[:p]
+			rawBody = data[p+4:]
+		except ValueError:
+			try:
+				p = data.index('\n\n')
+				rawHeader = data[:p]
+				rawBody = data[p+2:]
+			except ValueEror:
+				rawHeader = data
+				rawBody = ''
+		
+		
 		mail = {
 			'peer_ip': peer[0],
 			'peer_port': peer[1],
 			'from': mailfrom,
 			'to': rcpttos[0] if len(rcpttos) > 0 else '<nobody>',
 			'rawdata': data,
-			'subject': 'TODO',
+			'subject': msg['subject'],
+			'rawheader': rawHeader,
+			'rawbody': rawBody,
+			'bodies': [{'body':submessage.get_payload()} for submessage in msg.walk()]
 		}
 		self._ms.add(mail)
 
@@ -119,6 +145,19 @@ class _MocksmtpHttpRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 		self.end_headers()
 		self.wfile.write(pageBlob)
 
+	def _serve_static(self, fn, files):
+		if fn not in files:
+			self.send_error(404)
+			return
+		content = files[fn]
+		contentType = mimetypes.guess_type(fn)[0]
+		
+		self.send_response(200)
+		self.send_header('Content-Type', contentType)
+		self.send_header('Content-Length', str(len(content)))
+		self.end_headers()
+		self.wfile.write(content)
+
 	def do_GET(self):
 		if self.path == '/':
 			mails = self.server.ms.mails
@@ -137,17 +176,7 @@ class _MocksmtpHttpRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 			self._serve_template('mail', maildict)
 		elif self.path.startswith('/static/'):
 			fn = self.path[len('/static/'):]
-			if fn not in self.server.staticFiles:
-				self.send_error(404)
-				return
-			content = self.server.staticFiles[fn]
-			contentType = mimetypes.guess_type(fn)[0]
-
-			self.send_response(200)
-			self.send_header('Content-Type', contentType)
-			self.send_header('Content-Length', str(len(content)))
-			self.end_headers()
-			self.wfile.write(content)
+			self._serve_static(fn, self.server.staticFiles)
 		else:
 			self.send_error(404)
 
@@ -200,12 +229,12 @@ def mockSMTP(config):
 	smtpSrv = MockSmtpServer(config['smtpaddr'], config['smtpport'], ms)
 
 	httpTemplates = _readIds(
-		('root', 'index', 'mail'),
+		_TEMPLATES,
 		lambda fid: os.path.join(_BASE_DIR, 'templates', fid + '.mustache'),
 		mapContent=lambda content:content.decode('UTF-8'),
 		ondemand=config['static_dev'])
 	httpStatic = _readIds(
-		('mocksmtp.css',),
+		_STATIC_FILES,
 		lambda fid: os.path.join(_BASE_DIR, 'static', fid),
 		ondemand=config['static_dev'])
 	httpSrv = MocksmtpHttpServer(config['httpaddr'], config['httpport'], ms, httpTemplates, httpStatic)
