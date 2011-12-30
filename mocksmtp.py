@@ -157,6 +157,7 @@ class MockSmtpServer(smtpd.SMTPServer):
 			'rawbody': rawBody,
 			'htmlbody': htmlBody,
 			'receivedAt': receivedAtStr,
+			'receivedAt_dateTime': receivedAt,
 			'bodies': [{'body':submessage.get_payload()} for submessage in msg.walk()]
 		}
 		self._ms.add(mail)
@@ -200,7 +201,7 @@ class _MocksmtpHttpRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
 	def do_GET(self):
 		if self.path == '/':
-			mails = [m.copy() for m in self.server.ms.mails]
+			mails = sorted((m.copy() for m in self.server.ms.mails), key=lambda m: m['receivedAt_dateTime'], reverse=True)
 			for i,m in enumerate(mails):
 				m['id'] = str(i)
 			self._serve_template('index', {'emails': mails, 'title': 'mocksmtpserver'})
