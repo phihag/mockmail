@@ -12,6 +12,7 @@ import mimetypes
 import os
 import pwd
 import re
+import signal
 import smtpd
 import sys
 import tempfile
@@ -344,7 +345,10 @@ def main():
 	parser.add_option('-d', '--daemonize', action='store_const', const=True, dest='daemonize', default=None, help='Run mocksmtp in the background. Overwrites configuration')
 	parser.add_option('-i', '--interactive', action='store_const', const=True, dest='daemonize', default=None, help='Run mocksmtp in the foreground. Overwrites configuration')
 	parser.add_option('--pidfile', dest='pidfile', default=None, help='Set pidfile to use. Overwrites configuration')
-	parser.add_option('--status', action='store_true', dest='status', help='Do not run mocksmtp, but check whether it is running. This only works if a pidfile has been specified in the configuration or command line')
+	parser.add_option('--ctl-status', action='store_const', dest='ctl', const='status', default=None, help='Check whether mocksmtp service is running.')
+	parser.add_option('--ctl-start',  action='store_const', dest='ctl', const='start',  default=None, help='Start mocksmtp service.')
+	parser.add_option('--ctl-stop',   action='store_const', dest='ctl', const='stop',   default=None, help='Stop mocksmtp  service.')
+	parser.add_option('--quiet-ctl', action='store_true', dest='quiet_ctl', default=False, help='Do not print announcement in --ctl-* operations.')
 	parser.add_option('--dumpconfig', action='store_true', dest='dumpconfig', help='Do not run mocksmtp, but dump the effective configuration')
 	opts,args = parser.parse_args()
 
@@ -378,13 +382,29 @@ def main():
 		return
 
 	pid = _getPid(_effectivePidfile(config))
-	if opts.status:
+	ctl_print = (lambda s: 0) if opts.quiet_ctl else sys.stdout.write
+	if opts.ctl == 'status':
 		if pid:
-			print('mocksmtp is running')
+			ctl_print('mocksmtp is running.\n')
 			sys.exit(0)
 		else:
-			print('mocksmtp is not running ... failed!')
+			ctl_print('mocksmtp is NOT running.\n')
 			sys.exit(3)
+	elif opts.ctl == 'start':
+		ctl_print('Starting Test MTA: mocksmtp')
+		if pid:
+			sys.stdout.write(' (pid ' + str(pid) + ') already running.\n')
+			sys.exit(0)
+		else:
+			config['daemonize'] = True
+			mockSMTP(config)
+			ctl_print('.\n')
+	elif opts.ctl == 'stop':
+		ctl_print('Stopping Test MTA: mocksmtp ...')
+		if pid:
+			os.kill(pid, signal.SIGTERM)
+		ctl_print('.\n')
+		sys.exit(0)
 
 	if pid:
 		raise Exception('mocksmtp is already running (pid ' + str(pid) + ', read from ' + _effectivePidfile(config) + ')')

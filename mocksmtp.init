@@ -1,0 +1,56 @@
+#!/bin/sh
+
+### BEGIN INIT INFO
+# Provides: mocksmtp
+# Required-Start: $remote_fs
+# Required-Stop: $remote_fs
+# Default-Start: 2 3 4 5
+# Default-Stop: 0 1 6
+# Short-Description: Debugging email server
+# Description: An email (SMTP) server that accepts all emails and shows them in a web interface.
+### END INIT INFO
+
+EXEC=/usr/bin/mocksmtp
+CONFIG_FILE=/etc/mocksmtp.conf
+
+EXEC=/home/phihag/projects/mocksmtp/mocksmtp.py
+CONFIG_FILE=config.production
+
+# Load the VERBOSE setting and other rcS variables
+. /lib/init/vars.sh
+
+# Define LSB log_* functions.
+# Depend on lsb-base (>= 3.0-6) to ensure that this file is present.
+. /lib/lsb/init-functions
+
+case "$1" in
+  start)
+        [ "$VERBOSE" != no ] && log_daemon_msg "Starting $DESC" "$NAME"
+        $EXEC -c ${CONFIG_FILE} --quiet-ctl --ctl-start
+        case "$?" in
+                0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
+                2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
+        esac
+        ;;
+  stop)
+        [ "$VERBOSE" != no ] && log_daemon_msg "Stopping $DESC" "$NAME"
+        $EXEC -c ${CONFIG_FILE} --quiet-ctl --ctl-stop
+        case "$?" in
+                0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
+                2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
+        esac
+        ;;
+  restart|force-reload)
+        log_daemon_msg "Restarting $DESC" "$NAME"
+        $EXEC -c ${CONFIG_FILE} --quiet-ctl --ctl-stop
+        $EXEC -c ${CONFIG_FILE} --quiet-ctl --ctl-start
+        log_end_msg $?
+        ;;
+  status)
+        $EXEC -c ${CONFIG_FILE} --ctl-status
+        ;;
+  *)
+        echo "Usage: $0 {start|stop|restart|force-reload|status}"
+        exit 1
+        ;;
+esac
