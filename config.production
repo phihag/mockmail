@@ -3,6 +3,9 @@
 	"smtpport": 25,
 	"httpaddr": "127.0.0.1",
 	"httpport": 2580,
-	"chroot": true,
-	"dropuser": "mocksmtp"
+	"chroot": "/var/run/mocksmtp",
+	"chroot_mkdir": true,
+	"pidfile": "mocksmtp.pid",
+	"dropuser": "mocksmtp",
+	"daemonize": true
 }

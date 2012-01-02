@@ -13,6 +13,7 @@ import os
 import pwd
 import re
 import smtpd
+import sys
 import tempfile
 import time
 import threading
@@ -226,7 +227,8 @@ class _MocksmtpHttpRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 	def log_error(*args, **kwargs):
 		pass
 
-def _dropPrivileges(config):
+def _dropPrivileges(config, init_chroot=None):
+	""" @param init_chroot Callback function to call before creating the chroot """
 	uid = None
 	if config['dropuser'] is not None:
 		uname = config['dropuser']
@@ -248,21 +250,60 @@ def _dropPrivileges(config):
 			gid = grp.getgrnam(gname).gr_gid
 
 	if config['chroot']:
-		if config['chroot'] == True: # chroot into a temporary directory
-			chrootDir = tempfile.mkdtemp('mocksmtp')
-			try:
-				os.chroot(chrootDir)
-			except OSError:
-				os.rmdir(chrootDir)
-				raise
-		else: # chroot into a regular directory
-			os.chroot(config['chroot'])
+		if config['chroot_mkdir']:
+			if not os.path.exists(config['chroot']):
+				os.mkdir(config['chroot'], 0o700)
+
+		os.chroot(config['chroot'])
 		os.chdir('/')
+
+	if init_chroot:
+		init_chroot()
 
 	if uid is not None:
 		os.setgroups([])
 		os.setgid(gid)
 		os.setuid(uid)
+
+def _setupPidfile(pidfile):
+	if pidfile is None:
+		return
+	with open(pidfile, 'w') as pidf:
+		pidf.write(str(os.getpid()))
+
+def _getPid(pidfile):
+	"""
+	@returns The process id of the running mocksmtp process, or None if it is not running.
+	"""
+	if not pidfile:
+		raise Exception('No pidfile set! Use --pidfile or the "pidfile" configuration option')
+	try:
+		pidc = _readfile(pidfile)
+	except (OSError, IOError):
+		return None
+	if not pidc:
+		return None
+	try:
+		pid = int(pidc)
+	except ValueError:
+		return None
+	try:
+		cmdline = _readfile(os.path.join('/proc/', str(pid), 'cmdline'))
+		if 'mocksmtp' in cmdline:
+			return pid
+		else: # Just another process that happens to have the same pid
+			return None
+	except IOError:
+		return None
+
+def _effectivePidfile(config):
+	if not config['pidfile']:
+		return None
+	if config['chroot']:
+		res = os.path.join(config['chroot'], config['pidfile'])
+	else:
+		res = config['pidfile']
+	return os.path.abspath(res)
 
 def mockSMTP(config):
 	ms = MailStore()
@@ -280,7 +321,11 @@ def mockSMTP(config):
 		ondemand=config['static_dev'])
 	httpSrv = MocksmtpHttpServer(config['httpaddr'], config['httpport'], ms, httpTemplates, httpStatic)
 
-	_dropPrivileges(config)
+	if config['daemonize']:
+		if os.fork() != 0:
+			sys.exit(0)
+
+	_dropPrivileges(config, lambda: _setupPidfile(config['pidfile']))
 
 	smtpThread = threading.Thread(target=asyncore.loop)
 	smtpThread.daemon = True
@@ -291,28 +336,58 @@ def mockSMTP(config):
 	httpThread.start()
 
 	smtpThread.join()
+	httpThread.join()
 
 def main():
 	parser = OptionParser()
-	parser.add_option('-c', '--config', dest='configfile', metavar='FILE')
+	parser.add_option('-c', '--config', dest='configfile', metavar='FILE', help='JSON configuration file to load')
+	parser.add_option('-d', '--daemonize', action='store_const', const=True, dest='daemonize', default=None, help='Run mocksmtp in the background. Overwrites configuration')
+	parser.add_option('-i', '--interactive', action='store_const', const=True, dest='daemonize', default=None, help='Run mocksmtp in the foreground. Overwrites configuration')
+	parser.add_option('--pidfile', dest='pidfile', default=None, help='Set pidfile to use. Overwrites configuration')
+	parser.add_option('--status', action='store_true', dest='status', help='Do not run mocksmtp, but check whether it is running. This only works if a pidfile has been specified in the configuration or command line')
+	parser.add_option('--dumpconfig', action='store_true', dest='dumpconfig', help='Do not run mocksmtp, but dump the effective configuration')
 	opts,args = parser.parse_args()
 
 	if len(args) != 0:
 		parser.error('Did not expect any arguments. Use -c to specify a configuration file.')
 
 	config = {
-		'smtpaddr': '', # IP address to bind the SMTP port on
-		'smtpport': 25, # SMTP port number. On unixoid systems, you will need superuser privileges to bind to a port < 1024
-		'httpaddr': '',
-		'httpport': 2580,
-		'chroot': False,     # Set to True to chroot into a temporary directory. Alternatively, specify the directory to chroot into.
-		'dropuser': None,    # User account (name or uid) to drop to, None to not drop privileges
-		'dropgroup': None,   # User group (name or gid) to drop into. By default, this is the primary group of the user.
-		'static_dev': False, # Read static files on demand. Good for development (a reload will update the file), but should not be set in production
+		'smtpaddr': '',       # IP address to bind the SMTP port on
+		'smtpport': 25,       # SMTP port number. On unixoid systems, you will need superuser privileges to bind to a port < 1024
+		'httpaddr': '',       # IP address to bind the web interface on. The default allows anyone to see your mail.
+		'httpport': 2580,     # Port to bind the web interface on. You may want to configure your webserver on port 80 to proxy the connection.
+		'chroot': None,       # Specify the directory to chroot into.
+		'chroot_mkdir': False,# Automatically create the chroot directory if it doesn't exist, and chroot is set.
+		'dropuser': None,     # User account (name or uid) to drop to, None to not drop privileges
+		'dropgroup': None,    # User group (name or gid) to drop into. By default, this is the primary group of the user.
+		'static_dev': False,  # Read static files on demand. Good for development (a reload will update the file), but should not be set in production
+		'daemonize': False,   # Whether mocksmtp should go into the background after having started
+		'pidfile': None,      # File to write the process ID of mocksmtp to (relative to the chroot)
 	}
 	if opts.configfile:
 		with open(opts.configfile , 'r') as cfgf:
 			config.update(json.load(cfgf))
+	if opts.daemonize is not None:
+		config['daemonize'] = opts.daemonize
+	if opts.pidfile is not None:
+		config['pidfile'] = opts.pidfile
+
+	if opts.dumpconfig:
+		json.dump(config, sys.stdout, indent=4)
+		sys.stdout.write('\n')
+		return
+
+	pid = _getPid(_effectivePidfile(config))
+	if opts.status:
+		if pid:
+			print('mocksmtp is running')
+			sys.exit(0)
+		else:
+			print('mocksmtp is not running ... failed!')
+			sys.exit(3)
+
+	if pid:
+		raise Exception('mocksmtp is already running (pid ' + str(pid) + ', read from ' + _effectivePidfile(config) + ')')
 
 	mockSMTP(config)
 
