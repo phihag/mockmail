@@ -1,6 +1,5 @@
 The following features would be nice to have:
 
-· Makefile to generate tarball (for debian packaging)
 · debian package (depends on http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=653862)
 · notification on new emails via AJAX or websockets
 	· desktop notification (like gmail)
