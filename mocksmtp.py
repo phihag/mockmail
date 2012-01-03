@@ -1,6 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf8 -*-
 
+"""A test MTA for debugging purposes"""
+
+__author__  = "Philipp Hagemeister"
+__license__ = "GPL"
+__version__ = "1.0"
+__maintainer__ = "Philipp Hagemeister"
+__status__ = "Production"
+__email__ = "phihag@phihag.de"
+
+
 import BaseHTTPServer
 import asyncore
 import cgi
