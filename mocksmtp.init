@@ -10,11 +10,9 @@
 # Description: An email (SMTP) server that accepts all emails and shows them in a web interface.
 ### END INIT INFO
 
-EXEC=/usr/bin/mocksmtp
+PREFIX=/usr
+EXEC=$PREFIX/bin/mocksmtp
 CONFIG_FILE=/etc/mocksmtp.conf
-
-EXEC=/home/phihag/projects/mocksmtp/mocksmtp.py
-CONFIG_FILE=config.production
 
 # Load the VERBOSE setting and other rcS variables
 . /lib/init/vars.sh
