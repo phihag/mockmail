@@ -1,8 +1,9 @@
 {
 	"smtpaddr": "",
-	"smtpport": 25,
+	"smtpport": 2525,
 	"httpaddr": "127.0.0.1",
 	"httpport": 2580,
+
 	"chroot": "/var/run/mocksmtp",
 	"chroot_mkdir": true,
 	"pidfile": "mocksmtp.pid",

@@ -7,4 +7,7 @@ The following features would be nice to have:
 · i18n
 · Nice styles
 · Permanent mail storage
+· switch to python-daemon
+· Distinguish by HELO
+· IPv6 support
 

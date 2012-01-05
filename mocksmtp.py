@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf8 -*-
 
 """A test MTA for debugging purposes"""
@@ -10,8 +10,6 @@ __maintainer__ = "Philipp Hagemeister"
 __status__ = "Production"
 __email__ = "phihag@phihag.de"
 
-
-import BaseHTTPServer
 import asyncore
 import cgi
 import datetime
@@ -29,6 +27,11 @@ import tempfile
 import time
 import threading
 from optparse import OptionParser
+
+try:
+	from http.server import HTTPServer, BaseHTTPRequestHandler
+except ImportError: # Python 2.x
+	from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 
 import pystache # If this fails, execute $ pip install pystache
 
@@ -174,15 +177,15 @@ class MockSmtpServer(smtpd.SMTPServer):
 		}
 		self._ms.add(mail)
 
-class MocksmtpHttpServer(BaseHTTPServer.HTTPServer):
+class MocksmtpHttpServer(HTTPServer):
 	def __init__(self, localaddr, port, ms, httpTemplates, staticFiles):
 		self.ms = ms
 		self.httpTemplates = httpTemplates
 		self.staticFiles = staticFiles
-		BaseHTTPServer.HTTPServer.__init__(self, (localaddr, port), _MocksmtpHttpRequestHandler)
+		HTTPServer.__init__(self, (localaddr, port), _MocksmtpHttpRequestHandler) # Required for Python 2.x since HTTPServer is an old-style class (uarg) there
 
 
-class _MocksmtpHttpRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+class _MocksmtpHttpRequestHandler(BaseHTTPRequestHandler):
 	def _serve_template(self, tname, context):
 		templates = self.server.httpTemplates
 		try:
@@ -367,7 +370,7 @@ def main():
 
 	config = {
 		'smtpaddr': '',       # IP address to bind the SMTP port on
-		'smtpport': 25,       # SMTP port number. On unixoid systems, you will need superuser privileges to bind to a port < 1024
+		'smtpport': 2525,     # SMTP port number. On unixoid systems, you will need superuser privileges to bind to a port < 1024
 		'httpaddr': '',       # IP address to bind the web interface on. The default allows anyone to see your mail.
 		'httpport': 2580,     # Port to bind the web interface on. You may want to configure your webserver on port 80 to proxy the connection.
 		'chroot': None,       # Specify the directory to chroot into.
@@ -391,9 +394,9 @@ def main():
 		sys.stdout.write('\n')
 		return
 
-	pid = _getPid(_effectivePidfile(config))
 	ctl_print = (lambda s: 0) if opts.quiet_ctl else sys.stdout.write
 	if opts.ctl == 'status':
+		pid = _getPid(_effectivePidfile(config))
 		if pid:
 			ctl_print('mocksmtp is running.\n')
 			sys.exit(0)
@@ -401,6 +404,7 @@ def main():
 			ctl_print('mocksmtp is NOT running.\n')
 			sys.exit(3)
 	elif opts.ctl == 'start':
+		pid = _getPid(_effectivePidfile(config))
 		ctl_print('Starting Test MTA: mocksmtp')
 		if pid:
 			sys.stdout.write(' (pid ' + str(pid) + ') already running.\n')
@@ -410,14 +414,17 @@ def main():
 			mockSMTP(config)
 			ctl_print('.\n')
 	elif opts.ctl == 'stop':
+		pid = _getPid(_effectivePidfile(config))
 		ctl_print('Stopping Test MTA: mocksmtp ...')
 		if pid:
 			os.kill(pid, signal.SIGTERM)
 		ctl_print('.\n')
 		sys.exit(0)
 
-	if pid:
-		raise Exception('mocksmtp is already running (pid ' + str(pid) + ', read from ' + _effectivePidfile(config) + ')')
+	if config['pidfile']:
+		pid = _getPid(_effectivePidfile(config))
+		if pid:
+			raise Exception('mocksmtp is already running (pid ' + str(pid) + ', read from ' + _effectivePidfile(config) + ')')
 
 	mockSMTP(config)
 

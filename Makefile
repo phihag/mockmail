@@ -1,7 +1,16 @@
 
 PREFIX=/usr/local
 
-install:
+default: install
+
+test:
+	python -c 'import pystache' # If this fails, install pystache
+
+create-user:
+	adduser --system --disabled-login --group --no-create-home --quiet mocksmtp
+
+install: test
+	$(MAKE) create-user
 	cp mocksmtp.py "${PREFIX}/bin/mocksmtp"
 	chmod a+x "${PREFIX}/bin/mocksmtp"
 
@@ -9,8 +18,10 @@ install:
 	sed "s#^PREFIX=.*#PREFIX=${PREFIX}#" <mocksmtp.init >/etc/init.d/mocksmtp
 	chmod a+x /etc/init.d/mocksmtp
 	update-rc.d mocksmtp defaults
+	/etc/init.d/mocksmtp start
 
 uninstall:
+	/etc/init.d/mocksmtp stop
 	update-rc.d mocksmtp remove
 	rm -f "${PREFIX}/bin/mocksmtp"
 	@if [ -f /etc/mocksmtp.conf ]; then \
