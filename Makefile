@@ -33,5 +33,5 @@ uninstall:
 	fi
 	rm -f "/etc/init.d/mocksmtp"
 
-.PHONY: install uninstall
+.PHONY: default test create-user install uninstall
 
