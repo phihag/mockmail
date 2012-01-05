@@ -1,0 +1,48 @@
+.TH MOCKSMTP "1" "January 2012" "mocksmtp" "User Commands"
+.SH NAME
+mocksmtp \- manual page for mocksmtp
+.SH SYNOPSIS
+.B mocksmtp
+[\fIoptions\fR]
+.SH OPTIONS
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+show this help message and exit
+.TP
+\fB\-c\fR FILE, \fB\-\-config\fR=\fIFILE\fR
+JSON configuration file to load
+.TP
+\fB\-d\fR, \fB\-\-daemonize\fR
+Run mocksmtp in the background. Overwrites
+configuration
+.TP
+\fB\-i\fR, \fB\-\-interactive\fR
+Run mocksmtp in the foreground. Overwrites
+configuration
+.TP
+\fB\-\-pidfile\fR=\fIPIDFILE\fR
+Set pidfile to use. Overwrites configuration
+.TP
+\fB\-\-ctl\-status\fR
+Check whether mocksmtp service is running.
+.TP
+\fB\-\-ctl\-start\fR
+Start mocksmtp service.
+.TP
+\fB\-\-ctl\-stop\fR
+Stop mocksmtp  service.
+.TP
+\fB\-\-quiet\-ctl\fR
+Do not print announcement in \fB\-\-ctl\-\fR* operations.
+.TP
+\fB\-\-dumpconfig\fR
+Do not run mocksmtp, but dump the effective
+configuration
+.TP
+\fB\-\-version\fR
+Do not run mocksmtp, but output the version
+.SH "SEE ALSO"
+For more information on how to setup mocksmtp, refer to
+the README at:
+
+https://github.com/phihag/mocksmtp/blob/master/README.md
