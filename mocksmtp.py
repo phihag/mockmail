@@ -363,10 +363,15 @@ def main():
 	parser.add_option('--ctl-stop',   action='store_const', dest='ctl', const='stop',   default=None, help='Stop mocksmtp  service.')
 	parser.add_option('--quiet-ctl', action='store_true', dest='quiet_ctl', default=False, help='Do not print announcement in --ctl-* operations.')
 	parser.add_option('--dumpconfig', action='store_true', dest='dumpconfig', help='Do not run mocksmtp, but dump the effective configuration')
+	parser.add_option('--version', action='store_true', dest='dumpversion', help='Do not run mocksmtp, but output the version')
 	opts,args = parser.parse_args()
 
 	if len(args) != 0:
 		parser.error('Did not expect any arguments. Use -c to specify a configuration file.')
+
+	if opts.dumpversion:
+		print(__version__)
+		return
 
 	config = {
 		'smtpaddr': '',       # IP address to bind the SMTP port on
