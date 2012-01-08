@@ -6,7 +6,7 @@ License: GPL3+
 Installation
 ============
 
-mocksmtp is written in Python 2.6+. Python 3.x is recommended.
+mocksmtp is written in Python 3. Legacy support for 2.6+ is maintained at the moment.
 mocksmtp requires the pystache library.
 
 To install mocksmtp on your system, run
