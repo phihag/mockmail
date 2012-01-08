@@ -21,7 +21,7 @@ install: test
 	/etc/init.d/mocksmtp start
 
 uninstall:
-	/etc/init.d/mocksmtp stop
+	-/etc/init.d/mocksmtp stop
 	update-rc.d mocksmtp remove
 	rm -f "${PREFIX}/bin/mocksmtp"
 	@if [ -f /etc/mocksmtp.conf ]; then \
