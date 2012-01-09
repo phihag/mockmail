@@ -1,7 +1,7 @@
 #!/bin/sh
 
 ### BEGIN INIT INFO
-# Provides: mocksmtp
+# Provides: mockmail
 # Required-Start: $remote_fs
 # Required-Stop: $remote_fs
 # Default-Start: 2 3 4 5
@@ -11,8 +11,8 @@
 ### END INIT INFO
 
 PREFIX=/usr
-EXEC=$PREFIX/bin/mocksmtp
-CONFIG_FILE=/etc/mocksmtp.conf
+EXEC=$PREFIX/bin/mockmail
+CONFIG_FILE=/etc/mockmail.conf
 
 # Load the VERBOSE setting and other rcS variables
 . /lib/init/vars.sh

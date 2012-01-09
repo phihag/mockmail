@@ -36,7 +36,7 @@ except ImportError: # Python 2.x
 import pystache # If this fails, execute $ pip install pystache
 
 _TEMPLATES = ('root', 'index', 'mail',)
-_STATIC_FILES = ('mocksmtp.css', 'jquery-1.7.1.min.js', 'mocksmtp.js', )
+_STATIC_FILES = ('mockmail.css', 'jquery-1.7.1.min.js', 'mockmail.js', )
 
 
 def _readfile(fn):
@@ -132,7 +132,7 @@ class MailStore(object):
 		finally:
 			self._lock.release()
 
-class MockSmtpServer(smtpd.SMTPServer):
+class MockmailSmtpServer(smtpd.SMTPServer):
 	def __init__(self, localaddr, port, ms):
 		self._ms = ms
 		smtpd.SMTPServer.__init__(self, (localaddr, port), None)
@@ -177,15 +177,15 @@ class MockSmtpServer(smtpd.SMTPServer):
 		}
 		self._ms.add(mail)
 
-class MocksmtpHttpServer(HTTPServer):
+class MockmailHttpServer(HTTPServer):
 	def __init__(self, localaddr, port, ms, httpTemplates, staticFiles):
 		self.ms = ms
 		self.httpTemplates = httpTemplates
 		self.staticFiles = staticFiles
-		HTTPServer.__init__(self, (localaddr, port), _MocksmtpHttpRequestHandler) # Required for Python 2.x since HTTPServer is an old-style class (uarg) there
+		HTTPServer.__init__(self, (localaddr, port), _MockmailHttpRequestHandler) # Required for Python 2.x since HTTPServer is an old-style class (uarg) there
 
 
-class _MocksmtpHttpRequestHandler(BaseHTTPRequestHandler):
+class _MockmailHttpRequestHandler(BaseHTTPRequestHandler):
 	def _serve_template(self, tname, context):
 		templates = self.server.httpTemplates
 		try:
@@ -219,7 +219,7 @@ class _MocksmtpHttpRequestHandler(BaseHTTPRequestHandler):
 			mails = sorted((m.copy() for m in self.server.ms.mails), key=lambda m: m['receivedAt_dateTime'], reverse=True)
 			for i,m in enumerate(mails):
 				m['id'] = str(i)
-			self._serve_template('index', {'emails': mails, 'title': 'mocksmtpserver'})
+			self._serve_template('index', {'emails': mails, 'title': 'mockmailserver'})
 		elif self.path.startswith('/mails/'):
 			mailid_str = self.path[len('/mails/'):]
 			try:
@@ -228,7 +228,7 @@ class _MocksmtpHttpRequestHandler(BaseHTTPRequestHandler):
 				self.send_error(404)
 				return
 			maildict = mail.copy()
-			maildict['title'] = maildict['subject'] + ' - mocksmtp'
+			maildict['title'] = maildict['subject'] + ' - mockmail'
 			self._serve_template('mail', maildict)
 		elif self.path.startswith('/static/'):
 			fn = self.path[len('/static/'):]
@@ -287,7 +287,7 @@ def _setupPidfile(pidfile):
 
 def _getPid(pidfile):
 	"""
-	@returns The process id of the running mocksmtp process, or None if it is not running.
+	@returns The process id of the running mockmail process, or None if it is not running.
 	"""
 	if not pidfile:
 		raise Exception('No pidfile set! Use --pidfile or the "pidfile" configuration option')
@@ -303,7 +303,7 @@ def _getPid(pidfile):
 		return None
 	try:
 		cmdline = _readfile(os.path.join('/proc/', str(pid), 'cmdline'))
-		if 'mocksmtp' in cmdline:
+		if 'mockmail' in cmdline:
 			return pid
 		else: # Just another process that happens to have the same pid
 			return None
@@ -319,10 +319,10 @@ def _effectivePidfile(config):
 		res = config['pidfile']
 	return os.path.abspath(res)
 
-def mockSMTP(config):
+def mockmail(config):
 	ms = MailStore()
 
-	smtpSrv = MockSmtpServer(config['smtpaddr'], config['smtpport'], ms)
+	smtpSrv = MockmailSmtpServer(config['smtpaddr'], config['smtpport'], ms)
 
 	httpTemplates = _readIds(
 		_TEMPLATES,
@@ -333,7 +333,7 @@ def mockSMTP(config):
 		_STATIC_FILES,
 		lambda fid: os.path.join(_BASE_DIR, 'static', fid),
 		ondemand=config['static_dev'])
-	httpSrv = MocksmtpHttpServer(config['httpaddr'], config['httpport'], ms, httpTemplates, httpStatic)
+	httpSrv = MockmailHttpServer(config['httpaddr'], config['httpport'], ms, httpTemplates, httpStatic)
 
 	if config['daemonize']:
 		if os.fork() != 0:
@@ -355,15 +355,15 @@ def mockSMTP(config):
 def main():
 	parser = OptionParser()
 	parser.add_option('-c', '--config', dest='configfile', metavar='FILE', help='JSON configuration file to load')
-	parser.add_option('-d', '--daemonize', action='store_const', const=True, dest='daemonize', default=None, help='Run mocksmtp in the background. Overwrites configuration')
-	parser.add_option('-i', '--interactive', action='store_const', const=True, dest='daemonize', default=None, help='Run mocksmtp in the foreground. Overwrites configuration')
+	parser.add_option('-d', '--daemonize', action='store_const', const=True, dest='daemonize', default=None, help='Run mockmail in the background. Overwrites configuration')
+	parser.add_option('-i', '--interactive', action='store_const', const=True, dest='daemonize', default=None, help='Run mockmail in the foreground. Overwrites configuration')
 	parser.add_option('--pidfile', dest='pidfile', default=None, help='Set pidfile to use. Overwrites configuration')
-	parser.add_option('--ctl-status', action='store_const', dest='ctl', const='status', default=None, help='Check whether mocksmtp service is running.')
-	parser.add_option('--ctl-start',  action='store_const', dest='ctl', const='start',  default=None, help='Start mocksmtp service.')
-	parser.add_option('--ctl-stop',   action='store_const', dest='ctl', const='stop',   default=None, help='Stop mocksmtp  service.')
+	parser.add_option('--ctl-status', action='store_const', dest='ctl', const='status', default=None, help='Check whether mockmail service is running.')
+	parser.add_option('--ctl-start',  action='store_const', dest='ctl', const='start',  default=None, help='Start mockmail service.')
+	parser.add_option('--ctl-stop',   action='store_const', dest='ctl', const='stop',   default=None, help='Stop mockmail  service.')
 	parser.add_option('--quiet-ctl', action='store_true', dest='quiet_ctl', default=False, help='Do not print announcement in --ctl-* operations.')
-	parser.add_option('--dumpconfig', action='store_true', dest='dumpconfig', help='Do not run mocksmtp, but dump the effective configuration')
-	parser.add_option('--version', action='store_true', dest='dumpversion', help='Do not run mocksmtp, but output the version')
+	parser.add_option('--dumpconfig', action='store_true', dest='dumpconfig', help='Do not run mockmail, but dump the effective configuration')
+	parser.add_option('--version', action='store_true', dest='dumpversion', help='Do not run mockmail, but output the version')
 	opts,args = parser.parse_args()
 
 	if len(args) != 0:
@@ -383,8 +383,8 @@ def main():
 		'dropuser': None,     # User account (name or uid) to drop to, None to not drop privileges
 		'dropgroup': None,    # User group (name or gid) to drop into. By default, this is the primary group of the user.
 		'static_dev': False,  # Read static files on demand. Good for development (a reload will update the file), but should not be set in production
-		'daemonize': False,   # Whether mocksmtp should go into the background after having started
-		'pidfile': None,      # File to write the process ID of mocksmtp to (relative to the chroot)
+		'daemonize': False,   # Whether mockmail should go into the background after having started
+		'pidfile': None,      # File to write the process ID of mockmail to (relative to the chroot)
 	}
 	if opts.configfile:
 		with open(opts.configfile , 'r') as cfgf:
@@ -403,24 +403,25 @@ def main():
 	if opts.ctl == 'status':
 		pid = _getPid(_effectivePidfile(config))
 		if pid:
-			ctl_print('mocksmtp is running.\n')
+			ctl_print('mockmail is running.\n')
 			sys.exit(0)
 		else:
-			ctl_print('mocksmtp is NOT running.\n')
+			ctl_print('mockmail is NOT running.\n')
 			sys.exit(3)
 	elif opts.ctl == 'start':
 		pid = _getPid(_effectivePidfile(config))
-		ctl_print('Starting Test MTA: mocksmtp')
+		ctl_print('Starting Test MTA: mockmail')
 		if pid:
 			sys.stdout.write(' (pid ' + str(pid) + ') already running.\n')
 			sys.exit(0)
 		else:
 			config['daemonize'] = True
-			mockSMTP(config)
+			mockmail(config)
 			ctl_print('.\n')
+			return
 	elif opts.ctl == 'stop':
 		pid = _getPid(_effectivePidfile(config))
-		ctl_print('Stopping Test MTA: mocksmtp ...')
+		ctl_print('Stopping Test MTA: mockmail ...')
 		if pid:
 			os.kill(pid, signal.SIGTERM)
 		ctl_print('.\n')
@@ -429,9 +430,9 @@ def main():
 	if config['pidfile']:
 		pid = _getPid(_effectivePidfile(config))
 		if pid:
-			raise Exception('mocksmtp is already running (pid ' + str(pid) + ', read from ' + _effectivePidfile(config) + ')')
+			raise Exception('mockmail is already running (pid ' + str(pid) + ', read from ' + _effectivePidfile(config) + ')')
 
-	mockSMTP(config)
+	mockmail(config)
 
 if __name__ == '__main__':
 	main()

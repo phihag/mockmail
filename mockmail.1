@@ -1,8 +1,8 @@
-.TH MOCKSMTP "1" "January 2012" "mocksmtp" "User Commands"
+.TH MOCKMAIL "1" "January 2012" "mockmail" "User Commands"
 .SH NAME
-mocksmtp \- email test server
+mockmail \- SMTP test server
 .SH SYNOPSIS
-.B mocksmtp
+.B mockmail
 [\fIoptions\fR]
 .SH OPTIONS
 .TP
@@ -13,36 +13,36 @@ show this help message and exit
 JSON configuration file to load
 .TP
 \fB\-d\fR, \fB\-\-daemonize\fR
-Run mocksmtp in the background. Overwrites
+Run mockmail in the background. Overwrites
 configuration
 .TP
 \fB\-i\fR, \fB\-\-interactive\fR
-Run mocksmtp in the foreground. Overwrites
+Run mockmail in the foreground. Overwrites
 configuration
 .TP
 \fB\-\-pidfile\fR=\fIPIDFILE\fR
 Set pidfile to use. Overwrites configuration
 .TP
 \fB\-\-ctl\-status\fR
-Check whether mocksmtp service is running.
+Check whether mockmail service is running.
 .TP
 \fB\-\-ctl\-start\fR
-Start mocksmtp service.
+Start mockmail service.
 .TP
 \fB\-\-ctl\-stop\fR
-Stop mocksmtp  service.
+Stop mockmail service.
 .TP
 \fB\-\-quiet\-ctl\fR
 Do not print announcement in \fB\-\-ctl\-\fR* operations.
 .TP
 \fB\-\-dumpconfig\fR
-Do not run mocksmtp, but dump the effective
+Do not run mockmail, but dump the effective
 configuration
 .TP
 \fB\-\-version\fR
-Do not run mocksmtp, but output the version
+Do not run mockmail, but output the version
 .SH "SEE ALSO"
-For more information on how to setup mocksmtp, refer to
+For more information on how to setup mockmail, refer to
 the README at:
 
-https://github.com/phihag/mocksmtp/blob/master/README.md
+https://github.com/phihag/mockmail/blob/master/README.md
