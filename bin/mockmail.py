@@ -301,7 +301,7 @@ def _getPid(pidfile):
 		return None
 	try:
 		cmdline = _readfile(os.path.join('/proc/', str(pid), 'cmdline'))
-		if 'mockmail' in cmdline:
+		if b'mockmail' in cmdline:
 			return pid
 		else: # Just another process that happens to have the same pid
 			return None
