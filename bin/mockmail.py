@@ -228,8 +228,8 @@ class _MockmailPystacheTemplate(pystache.Template):
 	def __init__(self, templates, *args, **kwargs):
 		self._templates_markup = templates
 		super(_MockmailPystacheTemplate, self).__init__(*args, **kwargs)
+		self.modifiers.set('>')(_MockmailPystacheTemplate._render_partial)
 	
-	@pystache.Template.modifiers.set('>')
 	def _render_partial(self, template_name):
 		markup = self._templates_markup[template_name]
 		template = _MockmailPystacheTemplate(self._templates_markup, markup, self.view)
