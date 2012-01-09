@@ -403,7 +403,7 @@ def main():
 		return
 
 	if config['resourcedir'] is None:
-		config['resourcedir'] = os.path.join(os.path.dirname(__file__), '..', 'share', 'mockmail')
+		config['resourcedir'] = os.path.normpath(os.path.join(os.path.dirname(__file__), '..', 'share', 'mockmail'))
 
 	if opts.check_resourcedir:
 		print('Loading resources from ' + os.path.abspath(config['resourcedir']) + ' ...')

@@ -21,7 +21,7 @@ install: test
 	sed "s#^PREFIX=.*#PREFIX=${PREFIX}#" <mockmail.init >/etc/init.d/mockmail
 	chmod a+x /etc/init.d/mockmail
 	update-rc.d mockmail defaults
-	/etc/init.d/mockmail start
+	/etc/init.d/mockmail restart
 
 uninstall:
 	-/etc/init.d/mockmail stop
