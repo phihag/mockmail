@@ -11,7 +11,7 @@ create-user:
 
 install: test
 	$(MAKE) create-user
-	cp mockmail.py "${PREFIX}/bin/mockmail"
+	cp bin/mockmail.py "${PREFIX}/bin/mockmail"
 	chmod a+x "${PREFIX}/bin/mockmail"
 
 	mkdir -p "${PREFIX}" "${PREFIX}/bin" "${PREFIX}/share"
