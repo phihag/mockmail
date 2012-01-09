@@ -137,7 +137,7 @@ class MailStore(object):
 		self._lock.acquire()
 		try:
 			try:
-				return _mails[mid_int]
+				return self._mails[mid_int]
 			except IndexError:
 				raise KeyError()
 		finally:
