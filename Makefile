@@ -28,7 +28,7 @@ pystache-install:
 		git clone git://github.com/defunkt/pystache.git $${TMPDIR}/pystache-git && \
 		sed -i 's#escape = lambda x: cgi.escape(unicode(x))#escape = lambda x: cgi.escape(unicode(x), quote=True)#' $${TMPDIR}/pystache-git/pystache/template.py && \
 		2to3 -w -n --no-diffs $${TMPDIR}/pystache-git/pystache/*.py && \
-		sudo cp -R $${TMPDIR}/pystache-git/pystache -t /usr/lib/python3/dist-packages/ && \
+		$$(if test "$$(id -u)" -ne 0; then echo sudo; fi;) cp -R $${TMPDIR}/pystache-git/pystache -t /usr/lib/python3/dist-packages/ && \
 		rm -rf $${TMPDIR}
 
 uninstall:
