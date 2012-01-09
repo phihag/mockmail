@@ -108,9 +108,12 @@ class MailStore(object):
 	def __init__(self):
 		self._lock = threading.Lock()
 		self._mails = []
+		self._id = 0
 
 	def add(self, mail):
 		self._lock.acquire()
+		mail['id'] = str(self._id)
+		self._id += 1
 		self._mails.append(mail)
 		self._lock.release()
 
@@ -119,6 +122,24 @@ class MailStore(object):
 		self._lock.acquire()
 		try:
 			return self._mails[:]
+		finally:
+			self._lock.release()
+
+	def getById(self, mid):
+		"""
+		Raises a KeyError if the id is not found
+		"""
+		try:
+			mid_int = int(mid)
+		except ValueError:
+			raise KeyError('Invalid key')
+		
+		self._lock.acquire()
+		try:
+			try:
+				return _mails[mid_int]
+			except IndexError:
+				raise KeyError()
 		finally:
 			self._lock.release()
 
@@ -215,14 +236,12 @@ class _MockmailHttpRequestHandler(BaseHTTPRequestHandler):
 	def do_GET(self):
 		if self.path == '/':
 			mails = sorted((m.copy() for m in self.server.ms.mails), key=lambda m: m['receivedAt_dateTime'], reverse=True)
-			for i,m in enumerate(mails):
-				m['id'] = str(i)
 			self._serve_template('index', {'emails': mails, 'title': 'mockmailserver'})
 		elif self.path.startswith('/mails/'):
 			mailid_str = self.path[len('/mails/'):]
 			try:
-				mail = self.server.ms.mails[int(mailid_str)]
-			except (KeyError, IndexError, ValueError):
+				mail = self.server.ms.getById(mailid_str)
+			except KeyError:
 				self.send_error(404)
 				return
 			maildict = mail.copy()
