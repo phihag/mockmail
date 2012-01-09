@@ -5,7 +5,7 @@
 
 __author__  = "Philipp Hagemeister"
 __license__ = "GPL"
-__version__ = "1.3"
+__version__ = "1.4"
 __maintainer__ = "Philipp Hagemeister"
 __status__ = "Production"
 __email__ = "phihag@phihag.de"
