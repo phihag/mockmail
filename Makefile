@@ -15,8 +15,7 @@ install: test
 	chmod a+x "${PREFIX}/bin/mockmail"
 
 	mkdir -p "${PREFIX}" "${PREFIX}/bin" "${PREFIX}/share"
-	cp -r -t "${PREFIX}" share/mockmail
-	cp -t "$"
+	cp -r -t "${PREFIX}/share" share/mockmail
 
 	cp -n config.production /etc/mockmail.conf
 	sed "s#^PREFIX=.*#PREFIX=${PREFIX}#" <mockmail.init >/etc/init.d/mockmail
