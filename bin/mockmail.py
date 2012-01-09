@@ -33,7 +33,7 @@ try:
 except ImportError: # Python 2.x
 	from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 
-import pystache # If this fails, execute $ pip install pystache
+import pystache # If this fails, install python3-pystache
 
 _TEMPLATES = ('root', 'index', 'mail',)
 _STATIC_FILES = ('mockmail.css', 'jquery-1.7.1.min.js', 'mockmail.js', )
@@ -42,8 +42,6 @@ _STATIC_FILES = ('mockmail.css', 'jquery-1.7.1.min.js', 'mockmail.js', )
 def _readfile(fn):
 	with open(fn, 'rb') as f:
 		return f.read()
-
-_BASE_DIR = os.path.dirname(__file__)
 
 class _OnDemandIdReader(object):
 	def __init__(self, ids, fnCalc, mapContent):
@@ -326,12 +324,12 @@ def mockmail(config):
 
 	httpTemplates = _readIds(
 		_TEMPLATES,
-		lambda fid: os.path.join(_BASE_DIR, 'templates', fid + '.mustache'),
+		lambda fid: os.path.join(config['resourcedir'], 'templates', fid + '.mustache'),
 		mapContent=lambda content:content.decode('UTF-8'),
 		ondemand=config['static_dev'])
 	httpStatic = _readIds(
 		_STATIC_FILES,
-		lambda fid: os.path.join(_BASE_DIR, 'static', fid),
+		lambda fid: os.path.join(config['resourcedir'], 'static', fid),
 		ondemand=config['static_dev'])
 	httpSrv = MockmailHttpServer(config['httpaddr'], config['httpport'], ms, httpTemplates, httpStatic)
 
@@ -357,6 +355,7 @@ def main():
 	parser.add_option('-c', '--config', dest='configfile', metavar='FILE', help='JSON configuration file to load')
 	parser.add_option('-d', '--daemonize', action='store_const', const=True, dest='daemonize', default=None, help='Run mockmail in the background. Overwrites configuration')
 	parser.add_option('-i', '--interactive', action='store_const', const=True, dest='daemonize', default=None, help='Run mockmail in the foreground. Overwrites configuration')
+	parser.add_option('--resourcedir', dest='resourcedir', metavar='DIR', help='Load resources and templates from this directrory')
 	parser.add_option('--pidfile', dest='pidfile', default=None, help='Set pidfile to use. Overwrites configuration')
 	parser.add_option('--ctl-status', action='store_const', dest='ctl', const='status', default=None, help='Check whether mockmail service is running.')
 	parser.add_option('--ctl-start',  action='store_const', dest='ctl', const='start',  default=None, help='Start mockmail service.')
@@ -364,6 +363,7 @@ def main():
 	parser.add_option('--quiet-ctl', action='store_true', dest='quiet_ctl', default=False, help='Do not print announcement in --ctl-* operations.')
 	parser.add_option('--dumpconfig', action='store_true', dest='dumpconfig', help='Do not run mockmail, but dump the effective configuration')
 	parser.add_option('--version', action='store_true', dest='dumpversion', help='Do not run mockmail, but output the version')
+	parser.add_option('--check-resourcedir', action='store_true', dest='check_resourcedir', help='Do not run mockmail, but check that the resource directory is set correctly')
 	opts,args = parser.parse_args()
 
 	if len(args) != 0:
@@ -385,6 +385,7 @@ def main():
 		'static_dev': False,  # Read static files on demand. Good for development (a reload will update the file), but should not be set in production
 		'daemonize': False,   # Whether mockmail should go into the background after having started
 		'pidfile': None,      # File to write the process ID of mockmail to (relative to the chroot)
+		'resourcedir': None,  # Directory to load templates and resources
 	}
 	if opts.configfile:
 		with open(opts.configfile , 'r') as cfgf:
@@ -393,11 +394,30 @@ def main():
 		config['daemonize'] = opts.daemonize
 	if opts.pidfile is not None:
 		config['pidfile'] = opts.pidfile
+	if opts.resourcedir is not None:
+		config['resourcedir'] = opts.resourcedir
 
 	if opts.dumpconfig:
 		json.dump(config, sys.stdout, indent=4)
 		sys.stdout.write('\n')
 		return
+
+	if config['resourcedir'] is None:
+		config['resourcedir'] = os.path.join(os.path.dirname(__file__), '..', 'share', 'mockmail')
+
+	if opts.check_resourcedir:
+		print('Loading resources from ' + os.path.abspath(config['resourcedir']) + ' ...')
+
+		httpTemplates = _readIds(
+			_TEMPLATES,
+			lambda fid: os.path.join(config['resourcedir'], 'templates', fid + '.mustache'),
+			mapContent=lambda content:content.decode('UTF-8'),
+			ondemand=False)
+		httpStatic = _readIds(
+			_STATIC_FILES,
+			lambda fid: os.path.join(config['resourcedir'], 'static', fid),
+			ondemand=False)
+		sys.exit(0)
 
 	ctl_print = (lambda s: 0) if opts.quiet_ctl else sys.stdout.write
 	if opts.ctl == 'status':

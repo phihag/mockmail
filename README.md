@@ -24,6 +24,6 @@ To change this configuration, edit /etc/mockmail.conf and restart mockmail with 
 
 Alternatively, you can run mockmail manually, like this:
 
-    ./mockmail.py
+    ./bin/mockmail.py
 
 Use the -c option to provide a configuration file.

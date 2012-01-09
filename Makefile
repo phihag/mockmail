@@ -14,6 +14,10 @@ install: test
 	cp mockmail.py "${PREFIX}/bin/mockmail"
 	chmod a+x "${PREFIX}/bin/mockmail"
 
+	mkdir -p "${PREFIX}" "${PREFIX}/bin" "${PREFIX}/share"
+	cp -r -t "${PREFIX}" share/mockmail
+	cp -t "$"
+
 	cp -n config.production /etc/mockmail.conf
 	sed "s#^PREFIX=.*#PREFIX=${PREFIX}#" <mockmail.init >/etc/init.d/mockmail
 	chmod a+x /etc/init.d/mockmail
@@ -32,6 +36,7 @@ uninstall:
 		fi; \
 	fi
 	rm -f "/etc/init.d/mockmail"
+	rm -rf /usr/share/mockmail
 
 .PHONY: default test create-user install uninstall
 
