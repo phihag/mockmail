@@ -1,3 +1,5 @@
+{{>header}}
+
 <div class="email">
 
 <div class="header" data-rawheader="{{rawheader}}">
@@ -5,12 +7,16 @@
 <dt>Received:</dt><dd>{{receivedAt}}</dd>
 <dt>From:</dt><dd>{{from}}</dd>
 <dt>Subject:</dt><dd><strong>{{subject}}</strong></dd>
-<dt>To:</dt><dd>{{to}}</dd>
+<dt>To:</dt><dd>{{simple_to}}</dd>
 </dl>
 </div>
 
 <div class="body" data-rawbody="{{rawbody}}">
-{{{htmlbody}}}
+{{#bodies}}
+	{{{html}}}
+{{/bodies}}
 </div>
 
 </div>
+
+{{>footer}}

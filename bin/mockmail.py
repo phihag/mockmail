@@ -13,6 +13,7 @@ __email__ = "phihag@phihag.de"
 import asyncore
 import cgi
 import datetime
+import email.header
 import email.parser
 import grp
 import json
@@ -35,7 +36,7 @@ except ImportError: # Python 2.x
 
 import pystache # If this fails, install python3-pystache
 
-_TEMPLATES = ('root', 'index', 'mail',)
+_TEMPLATES = ('header', 'footer', 'index', 'mail',)
 _STATIC_FILES = ('mockmail.css', 'jquery-1.7.1.min.js', 'mockmail.js', )
 
 
@@ -64,7 +65,6 @@ def _readIds(ids, fnCalc, mapContent=None, ondemand=False):
 	""" Read all the files calculated by map(fnCalc, ids), and return a dictionary {id: mapContent(file content)}
 	@param ondemand If this is set, do not actually return a dictionary, but a mock object that reads the contents everytime it is accessed.
 	"""
-
 	if ondemand:
 		return _OnDemandIdReader(ids, fnCalc, mapContent)
 	else:
@@ -151,49 +151,70 @@ class MailStore(object):
 		finally:
 			self._lock.release()
 
+def _decodeMailHeader(rawVal):
+	return ''.join(v if enc is None else v.decode(enc)
+				   for v,enc in email.header.decode_header(rawVal))
+
+def _parseMessage(msg):
+	res = {'payload':msg.get_payload()}
+	if msg.get_content_maintype() == 'text':
+		enc = msg.get_content_charset()
+		if enc is None:
+			enc = 'ASCII'
+		res['text'] = msg.get_payload(None, True).decode(enc)
+	
+		html = cgi.escape(re.sub('.{80}', lambda m: m.group(0) + '\n', res['text']), quote=True)
+		html = re.sub('https?://([a-zA-Z.0-9/\-_?;=]|&amp;)+', lambda m: '<a href="' + m.group(0) + '">' + m.group(0) + '</a>', html)
+		res['html'] = html
+	else:
+		res['html'] = '[attachment]'
+	return res
+
+def parseMail(peer, mailfrom, rcpttos, data):
+	feedParser = email.parser.FeedParser()
+	feedParser.feed(data)
+	msg = feedParser.close()
+	
+	try:
+		p = data.index('\r\n\r\n')
+		rawHeader = data[:p]
+		rawBody = data[p+4:]
+	except ValueError:
+		try:
+			p = data.index('\n\n')
+			rawHeader = data[:p]
+			rawBody = data[p+2:]
+		except ValueEror:
+			rawHeader = data
+			rawBody = ''
+
+	receivedAt = datetime.datetime.now(_Local)
+	receivedAtStr = receivedAt.strftime('%Y-%m-%d %H:%M:%S %Z')
+
+	subject = _decodeMailHeader(msg['subject'])
+
+	res = {
+		'peer_ip': peer[0],
+		'peer_port': peer[1],
+		'from': mailfrom,
+		'simple_to': rcpttos[0] if len(rcpttos) > 0 else '<nobody>',
+		'rawdata': data,
+		'subject': subject,
+		'rawheader': rawHeader,
+		'rawbody': rawBody,
+		'receivedAt': receivedAtStr,
+		'receivedAt_dateTime': receivedAt,
+		'bodies': [_parseMessage(submessage) for submessage in msg.walk()]
+	}
+	return res
+
 class MockmailSmtpServer(smtpd.SMTPServer):
 	def __init__(self, localaddr, port, ms):
 		self._ms = ms
 		smtpd.SMTPServer.__init__(self, (localaddr, port), None)
 
 	def process_message(self, peer, mailfrom, rcpttos, data):
-		feedParser = email.parser.FeedParser()
-		feedParser.feed(data)
-		msg = feedParser.close()
-		
-		try:
-			p = data.index('\r\n\r\n')
-			rawHeader = data[:p]
-			rawBody = data[p+4:]
-		except ValueError:
-			try:
-				p = data.index('\n\n')
-				rawHeader = data[:p]
-				rawBody = data[p+2:]
-			except ValueEror:
-				rawHeader = data
-				rawBody = ''
-
-		htmlBody = cgi.escape(re.sub('.{80}', lambda m: m.group(0) + '\n', rawBody))
-		htmlBody = re.sub('https?://([a-zA-Z.0-9/\-_?;=]|&amp;)+', lambda m: '<a href="' + m.group(0) + '">' + m.group(0) + '</a>', htmlBody)
-
-		receivedAt = datetime.datetime.now(_Local)
-		receivedAtStr = receivedAt.strftime('%Y-%m-%d %H:%M:%S %Z')
-
-		mail = {
-			'peer_ip': peer[0],
-			'peer_port': peer[1],
-			'from': mailfrom,
-			'to': rcpttos[0] if len(rcpttos) > 0 else '<nobody>',
-			'rawdata': data,
-			'subject': msg['subject'],
-			'rawheader': rawHeader,
-			'rawbody': rawBody,
-			'htmlbody': htmlBody,
-			'receivedAt': receivedAtStr,
-			'receivedAt_dateTime': receivedAt,
-			'bodies': [{'body':submessage.get_payload()} for submessage in msg.walk()]
-		}
+		mail = parseMail(peer, mailfrom, rcpttos, data)
 		self._ms.add(mail)
 
 class MockmailHttpServer(HTTPServer):
@@ -203,13 +224,23 @@ class MockmailHttpServer(HTTPServer):
 		self.staticFiles = staticFiles
 		HTTPServer.__init__(self, (localaddr, port), _MockmailHttpRequestHandler) # Required for Python 2.x since HTTPServer is an old-style class (uarg) there
 
+class _MockmailPystacheTemplate(pystache.Template):
+	def __init__(self, templates, *args, **kwargs):
+		self._templates_markup = templates
+		super(_MockmailPystacheTemplate, self).__init__(*args, **kwargs)
+	
+	@pystache.Template.modifiers.set('>')
+	def _render_partial(self, template_name):
+		markup = self._templates_markup[template_name]
+		template = _MockmailPystacheTemplate(self._templates_markup, markup, self.view)
+		return template.render()
+
 
 class _MockmailHttpRequestHandler(BaseHTTPRequestHandler):
 	def _serve_template(self, tname, context):
 		templates = self.server.httpTemplates
 		try:
-			body = pystache.render(templates[tname], context)
-			page = pystache.render(templates['root'], {'title': context['title'], 'body': body})
+			page = _MockmailPystacheTemplate(templates, templates[tname], context).render()
 			pageBlob = page.encode('utf-8')
 		except:
 			self.send_error(500)
