@@ -3,5 +3,6 @@
 	"smtpport": 2525,
 	"httpaddr": "127.0.0.1",
 	"httpport": 2580,
-	"static_dev": true
+	"static_dev": true,
+	"static_cache_secs": null
 }

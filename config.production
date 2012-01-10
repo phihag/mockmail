@@ -8,5 +8,6 @@
 	"chroot_mkdir": true,
 	"pidfile": "mockmail.pid",
 	"dropuser": "mockmail",
-	"daemonize": true
+	"daemonize": true,
+	"static_cache_secs": 3600
 }

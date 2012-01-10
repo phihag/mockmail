@@ -15,6 +15,7 @@ import cgi
 import datetime
 import email.header
 import email.parser
+import email.utils
 import grp
 import json
 import mimetypes
@@ -218,10 +219,11 @@ class MockmailSmtpServer(smtpd.SMTPServer):
 		self._ms.add(mail)
 
 class MockmailHttpServer(HTTPServer):
-	def __init__(self, localaddr, port, ms, httpTemplates, staticFiles):
+	def __init__(self, localaddr, port, ms, httpTemplates, staticFiles, static_cache_secs):
 		self.ms = ms
 		self.httpTemplates = httpTemplates
 		self.staticFiles = staticFiles
+		self.static_cache_secs = static_cache_secs
 		HTTPServer.__init__(self, (localaddr, port), _MockmailHttpRequestHandler) # Required for Python 2.x since HTTPServer is an old-style class (uarg) there
 
 class _MockmailPystacheTemplate(pystache.Template):
@@ -261,6 +263,9 @@ class _MockmailHttpRequestHandler(BaseHTTPRequestHandler):
 		self.send_response(200)
 		self.send_header('Content-Type', contentType)
 		self.send_header('Content-Length', str(len(content)))
+		if self.server.static_cache_secs is not None:
+			self.send_header('Expires', email.utils.formatdate(time.time() + self.server.static_cache_secs))
+			self.send_header('Cache-Control', 'public, max-age=' + str(self.server.static_cache_secs))
 		self.end_headers()
 		self.wfile.write(content)
 
@@ -276,7 +281,7 @@ class _MockmailHttpRequestHandler(BaseHTTPRequestHandler):
 				self.send_error(404)
 				return
 			maildict = mail.copy()
-			maildict['title'] = maildict['subject'] + ' - mockmail'
+			maildict['title'] = 'mockmail - ' + maildict['subject']
 			self._serve_template('mail', maildict)
 		elif self.path.startswith('/static/'):
 			fn = self.path[len('/static/'):]
@@ -395,7 +400,7 @@ def mockmail(config):
 		_STATIC_FILES,
 		lambda fid: os.path.join(config['resourcedir'], 'static', fid),
 		ondemand=config['static_dev'])
-	httpSrv = MockmailHttpServer(config['httpaddr'], config['httpport'], ms, httpTemplates, httpStatic)
+	httpSrv = MockmailHttpServer(config['httpaddr'], config['httpport'], ms, httpTemplates, httpStatic, config['static_cache_secs'])
 
 	if config['daemonize']:
 		if os.fork() != 0:
@@ -451,6 +456,7 @@ def main():
 		'pidfile': None,      # File to write the process ID of mockmail to (relative to the chroot)
 		'resourcedir': None,  # Directory to load templates and resources
 		'workarounds': True,  # Work around platform bugs
+		'static_cache_secs': 0# Cache duration for static files
 	}
 	if opts.configfile:
 		with open(opts.configfile , 'r') as cfgf:
