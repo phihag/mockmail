@@ -289,7 +289,7 @@ class _MockmailHttpRequestHandler(BaseHTTPRequestHandler):
 	def log_error(*args, **kwargs):
 		pass
 
-def _workaround_preload_codecs()
+def _workaround_preload_codecs():
 	""" Preload all available codecs. """
 	import codecs,glob,os.path
 	encs = set(os.path.splitext(os.path.basename(f))[0]
