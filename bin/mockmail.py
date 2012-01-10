@@ -289,6 +289,17 @@ class _MockmailHttpRequestHandler(BaseHTTPRequestHandler):
 	def log_error(*args, **kwargs):
 		pass
 
+def _workaround_preload_codecs()
+	""" Preload all available codecs. """
+	import codecs,glob,os.path
+	encs = set(os.path.splitext(os.path.basename(f))[0]
+			for f in glob.glob('/usr/lib/python*/encodings/*.*'))
+	for e in encs:
+		try:
+			codecs.lookup(e)
+		except LookupError:
+			pass # __init__.py or something
+
 def _dropPrivileges(config, init_chroot=None):
 	""" @param init_chroot Callback function to call before creating the chroot """
 	uid = None
@@ -315,6 +326,9 @@ def _dropPrivileges(config, init_chroot=None):
 		if config['chroot_mkdir']:
 			if not os.path.exists(config['chroot']):
 				os.mkdir(config['chroot'], 0o700)
+
+		if config['workarounds']:
+			_workaround_preload_codecs()
 
 		os.chroot(config['chroot'])
 		os.chdir('/')
@@ -436,6 +450,7 @@ def main():
 		'daemonize': False,   # Whether mockmail should go into the background after having started
 		'pidfile': None,      # File to write the process ID of mockmail to (relative to the chroot)
 		'resourcedir': None,  # Directory to load templates and resources
+		'workarounds': True,  # Work around platform bugs
 	}
 	if opts.configfile:
 		with open(opts.configfile , 'r') as cfgf:
