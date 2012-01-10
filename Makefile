@@ -4,12 +4,12 @@ PREFIX=/usr/local
 default: install
 
 test:
-	python -c 'import pystache' # If this fails, install pystache
+	python3 -c 'import pystache' # If this fails, install python3/pystache
 
 create-user:
 	adduser --system --disabled-login --group --no-create-home --quiet mockmail
 
-install: test
+install:
 	$(MAKE) create-user
 	cp bin/mockmail.py "${PREFIX}/bin/mockmail"
 	chmod a+x "${PREFIX}/bin/mockmail"
