@@ -164,7 +164,7 @@ def _parseMessage(msg):
 			enc = 'ASCII'
 		res['text'] = msg.get_payload(None, True).decode(enc)
 	
-		html = cgi.escape(res['text']), quote=True)
+		html = cgi.escape(res['text'], quote=True)
 		html = re.sub('https?://([a-zA-Z.0-9/\-_?;=]|&amp;)+', lambda m: '<a href="' + m.group(0) + '">' + m.group(0) + '</a>', html)
 		res['html'] = html
 	else:
