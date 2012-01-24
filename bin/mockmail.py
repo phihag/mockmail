@@ -511,11 +511,13 @@ def main():
 			ctl_print('.\n')
 			return
 	elif opts.ctl == 'stop':
-		pid = _getPid(_effectivePidfile(config))
+		pidfn = _effectivePidfile(config)
+		pid = _getPid(pidfn)
 		ctl_print('Stopping Test MTA: mockmail ...')
 		if pid:
 			os.kill(pid, signal.SIGTERM)
 		ctl_print('.\n')
+		os.unlink(pidfn)
 		sys.exit(0)
 
 	if config['pidfile']:
