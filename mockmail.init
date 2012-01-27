@@ -10,6 +10,8 @@
 # Description: An email (SMTP) server that accepts all emails and shows them in a web interface.
 ### END INIT INFO
 
+set -e
+
 PREFIX=/usr
 EXEC=$PREFIX/bin/mockmail
 CONFIG_FILE=/etc/mockmail.conf
@@ -52,3 +54,5 @@ case "$1" in
         exit 1
         ;;
 esac
+
+exit 0
