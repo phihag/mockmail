@@ -516,8 +516,11 @@ def main():
 		ctl_print('Stopping Test MTA: mockmail ...')
 		if pid:
 			os.kill(pid, signal.SIGTERM)
+			try:
+				os.unlink(pidfn)
+			except OSError:
+				pass
 		ctl_print('.\n')
-		os.unlink(pidfn)
 		sys.exit(0)
 
 	if config['pidfile']:
