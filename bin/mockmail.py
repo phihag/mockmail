@@ -463,8 +463,8 @@ def main():
 		'pidfile': None,      # File to write the process ID of mockmail to (relative to the chroot)
 		'resourcedir': None,  # Directory to load templates and resources
 		'workarounds': True,  # Work around platform bugs
-		'static_cache_secs': 0# Cache duration for static files
-		'smtp_grace_period':None# Set to a number to wait that long to open a port
+		'static_cache_secs': 0,# Cache duration for static files
+		'smtp_grace_period':None,# Set to a number to wait that long to open a port
 	}
 	if opts.configfile:
 		with open(opts.configfile , 'r') as cfgf:
