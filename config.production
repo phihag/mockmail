@@ -9,5 +9,6 @@
 	"pidfile": "mockmail.pid",
 	"dropuser": "mockmail",
 	"daemonize": true,
-	"static_cache_secs": 3600
+	"static_cache_secs": 3600,
+	"smtp_grace_period": 10
 }
