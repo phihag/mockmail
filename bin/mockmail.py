@@ -24,6 +24,7 @@ import pwd
 import re
 import signal
 import smtpd
+import socket
 import sys
 import tempfile
 import time
