@@ -5,13 +5,13 @@ function rawHeader_toggle() {
 	if (rawDisplay.length > 0) {
 		rawDisplay.remove();
 		emailHeader.children('.header_parsed').show();
-		link.text('Show parsed header');
+		link.text('Show raw header');
 	} else {
 		var rawDisplay = $('<div class="raw header_raw"></div>');
 		rawDisplay.text(emailHeader.attr('data-rawheader'));
 		emailHeader.append(rawDisplay);
 		emailHeader.children('.header_parsed').hide();
-		link.text('Show raw header');
+		link.text('Show parsed header');
 	}
 }
 
