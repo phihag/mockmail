@@ -393,8 +393,8 @@ def mockmail(config):
 	try:
 		smtpSrv = MockmailSmtpServer(config['smtpaddr'], config['smtpport'], ms)
 	except socket.error:
-		if opts['smtp_grace_period'] is not None:
-			time.sleep(opts['smtp_grace_period'])
+		if config['smtp_grace_period'] is not None:
+			time.sleep(config['smtp_grace_period'])
 			smtpSrv = MockmailSmtpServer(config['smtpaddr'], config['smtpport'], ms)
 		else:
 			raise
