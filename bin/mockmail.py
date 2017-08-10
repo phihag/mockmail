@@ -399,7 +399,7 @@ def _dropPrivileges(config, init_chroot=None):
         uname = config['dropuser']
         gname = config['dropgroup']
 
-        if  nce(uname, int):
+        if isinstance(uname, int):
             uid = uname
             if gname is None:
                 gname = pwd.getpwuid(uid).pw_gid
