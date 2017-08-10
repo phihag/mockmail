@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 
 __author__ = "Philipp Hagemeister"
 __license__ = "GPL"
-__version__ = "1.6"
+__version__ = "1.7"
 __maintainer__ = "Philipp Hagemeister"
 __status__ = "Production"
 __email__ = "phihag@phihag.de"
