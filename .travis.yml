@@ -10,3 +10,6 @@ install:
   - pep install flake8
 script:
   - make test
+notifications:
+  email:
+    - phihag@phihag.de
