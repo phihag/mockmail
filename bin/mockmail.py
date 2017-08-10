@@ -319,7 +319,7 @@ class _MockmailHttpRequestHandler(BaseHTTPRequestHandler):
         templates = self.server.httpTemplates
         try:
             renderer = MustacheRenderer(templates)
-            page = renderer.render(tepmlates[tname], context)
+            page = renderer.render(templates[tname], context)
             pageBlob = page.encode('utf-8')
         except:
             self.send_error(500)
