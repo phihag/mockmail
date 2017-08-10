@@ -10,6 +10,8 @@ install:
   - pip install flake8
 script:
   - make test
+  # Manually run test on Python 2 as well
+  - python -m unittest discover
 notifications:
   email:
     - phihag@phihag.de

@@ -3,6 +3,8 @@
 
 """A test MTA for debugging purposes"""
 
+from __future__ import unicode_literals
+
 __author__ = "Philipp Hagemeister"
 __license__ = "GPL"
 __version__ = "1.6"
@@ -11,7 +13,6 @@ __status__ = "Production"
 __email__ = "phihag@phihag.de"
 
 import asyncore
-import cgi
 import datetime
 import email.header
 import email.parser
@@ -38,7 +39,15 @@ except ImportError:  # Python 2.x
 try:
     from html import escape as html_escape
 except ImportError:  # Python < 3.2
-    from cgi import escape as html_escape
+    import cgi
+
+    def html_escape(v):
+        return cgi.escape(v, quote=True).replace("'", '&#x27;')
+
+try:
+    compat_str = unicode  # Python2
+except NameError:
+    compat_str = str  # Python 3
 
 
 _TEMPLATES = ('header', 'footer', 'index', 'mail',)
@@ -130,7 +139,7 @@ class MailStore(object):
 
     def add(self, mail):
         self._lock.acquire()
-        mail['id'] = str(self._id)
+        mail['id'] = compat_str(self._id)
         self._id += 1
         self._mails.append(mail)
         self._lock.release()
@@ -186,7 +195,7 @@ def _parseMessage(msg):
             enc = 'ASCII'
         res['text'] = msg.get_payload(None, True).decode(enc)
 
-        html = cgi.escape(res['text'], quote=True)
+        html = html_escape(res['text'])
         html = re.sub('https?://([a-zA-Z.0-9/\-_?;=]|&amp;)+', lambda m: '<a href="' + m.group(0) + '">' + m.group(0) + '</a>', html)
         res['html'] = html
     else:
@@ -281,7 +290,7 @@ class MustacheRenderer(object):
             mtype = m.group('type')
             name = m.group('name')
             if mtype == '{':
-                yield str(self._lookup(contexts, name))
+                yield compat_str(self._lookup(contexts, name))
             elif mtype == '>':
                 if name not in self.templates:
                     raise ValueError('Cannot find template %s ' % name)
@@ -307,7 +316,7 @@ class MustacheRenderer(object):
                 raise ValueError('Closing unopened name %s' % name)
             else:
                 assert not mtype
-                yield html_escape(str(self._lookup(contexts, name)))
+                yield html_escape(compat_str(self._lookup(contexts, name)))
 
             p = m.end()
 
@@ -339,14 +348,14 @@ class _MockmailHttpRequestHandler(BaseHTTPRequestHandler):
 
         self.send_response(200)
         self.send_header('Content-Type', contentType)
-        self.send_header('Content-Length', str(len(content)))
+        self.send_header('Content-Length', compat_str(len(content)))
         if self.server.static_cache_secs is not None:
             self.send_header(
                 'Expires',
                 email.utils.formatdate(time.time() + self.server.static_cache_secs))
             self.send_header(
                 'Cache-Control',
-                'public, max-age=' + str(self.server.static_cache_secs))
+                'public, max-age=' + compat_str(self.server.static_cache_secs))
         self.end_headers()
         self.wfile.write(content)
 

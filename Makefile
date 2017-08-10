@@ -5,7 +5,7 @@ default: install
 
 test:
 	python3 -m unittest
-	flake8 bin/mockmail.py
+	flake8 bin/mockmail.py test/*.py
 
 create-user:
 	adduser --system --disabled-login --group --no-create-home --quiet mockmail
