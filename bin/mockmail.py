@@ -566,7 +566,7 @@ def main():
         return
 
     config = {
-        'smtpaddr': '',       # IP address to bind the SMTP port on
+        'smtpaddr': '::',     # IP address to bind the SMTP port on. The default allows anyone to send you emails.
         'smtpport': 2525,     # SMTP port number. On unixoid systems, you will need superuser privileges to bind to a port < 1024
         'httpaddr': '',       # IP address to bind the web interface on. The default allows anyone to see your mail.
         'httpport': 2580,     # Port to bind the web interface on. You may want to configure your webserver on port 80 to proxy the connection.
