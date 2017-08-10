@@ -5,6 +5,7 @@ default: install
 
 test:
 	python3 -c 'import pystache' # If this fails, install python3/pystache
+	flake8 bin/mockmail.py
 
 create-user:
 	adduser --system --disabled-login --group --no-create-home --quiet mockmail
