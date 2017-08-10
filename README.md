@@ -7,7 +7,7 @@ Installation
 ============
 
 mockmail is written in Python 3. Legacy support for 2.6+ is maintained at the moment.
-mockmail requires the pystache library.
+mockmail requires no external dependencies.
 
 To install mockmail on your system, run
 

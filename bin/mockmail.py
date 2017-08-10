@@ -35,7 +35,11 @@ try:
 except ImportError:  # Python 2.x
     from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 
-import pystache  # If this fails, install python3-pystache
+try:
+    from html import escape as html_escape
+except ImportError:  # Python < 3.2
+    from cgi import escape as html_escape
+
 
 _TEMPLATES = ('header', 'footer', 'index', 'mail',)
 _STATIC_FILES = ('mockmail.css', 'jquery-1.7.1.min.js', 'mockmail.js', )
@@ -248,23 +252,74 @@ class MockmailHttpServer(HTTPServer):
         HTTPServer.__init__(self, (localaddr, port), _MockmailHttpRequestHandler)  # Required for Python 2.x since HTTPServer is an old-style class (uarg) there
 
 
-class _MockmailPystacheTemplate(pystache.Template):
-    def __init__(self, templates, *args, **kwargs):
-        self._templates_markup = templates
-        super(_MockmailPystacheTemplate, self).__init__(*args, **kwargs)
-        self.modifiers.set('>')(_MockmailPystacheTemplate._render_partial)
+class MustacheRenderer(object):
+    # a very simplistic renderer, sufficient for our very simplistic mustache
+    def __init__(self, templates):
+        self.templates = templates
 
-    def _render_partial(self, template_name):
-        markup = self._templates_markup[template_name]
-        template = _MockmailPystacheTemplate(self._templates_markup, markup, self.view)
-        return template.render()
+    def render(self, template, context):
+        return self._render_stack(template, [context])
+
+    def _render_stack(self, template, contexts):
+        return ''.join(self._render_pieces(template, contexts))
+
+    def _lookup(self, stack, name):
+        for c in reversed(stack):
+            if name in c:
+                return c[name]
+        return ''
+
+    def _render_pieces(self, template, contexts):
+        p = 0
+        rex = re.compile(r'\{\{(?P<type>[>{#/]?)(?P<name>[a-zA-Z0-9_]+)\}?\}\}')
+        while True:
+            m = rex.search(template, p)
+            if not m:
+                break
+            yield template[p:m.start()]
+
+            mtype = m.group('type')
+            name = m.group('name')
+            if mtype == '{':
+                yield str(self._lookup(contexts, name))
+            elif mtype == '>':
+                if name not in self.templates:
+                    raise ValueError('Cannot find template %s ' % name)
+                yield self._render_stack(self.templates[name], contexts)
+            elif mtype == '#':
+                close_tag = '{{/%s}}' % name
+                close_start = template.find(close_tag, m.end())
+                if close_start is None:
+                    raise ValueError('Cannot find closing {{/%s}}' % name)
+                inner_template = template[m.end():close_start]
+
+                val = self._lookup(contexts, name)
+                if val:
+                    if not isinstance(val, list):
+                        raise ValueError('Refusing to iterate over %s (val %r)' % (type(val), val))
+
+                    for el in val:
+                        yield self._render_stack(inner_template, contexts + [el])
+
+                p = close_start + len(close_tag)
+                continue
+            elif mtype == '/':
+                raise ValueError('Closing unopened name %s' % name)
+            else:
+                assert not mtype
+                yield html_escape(str(self._lookup(contexts, name)))
+
+            p = m.end()
+
+        yield template[p:]
 
 
 class _MockmailHttpRequestHandler(BaseHTTPRequestHandler):
     def _serve_template(self, tname, context):
         templates = self.server.httpTemplates
         try:
-            page = _MockmailPystacheTemplate(templates, templates[tname], context).render()
+            renderer = MustacheRenderer(templates)
+            page = renderer.render(tepmlates[tname], context)
             pageBlob = page.encode('utf-8')
         except:
             self.send_error(500)
@@ -344,7 +399,7 @@ def _dropPrivileges(config, init_chroot=None):
         uname = config['dropuser']
         gname = config['dropgroup']
 
-        if isinstance(uname, int):
+        if  nce(uname, int):
             uid = uname
             if gname is None:
                 gname = pwd.getpwuid(uid).pw_gid

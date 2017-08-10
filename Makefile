@@ -4,7 +4,7 @@ PREFIX=/usr/local
 default: install
 
 test:
-	python3 -c 'import pystache' # If this fails, install python3/pystache
+	python3 -m unittest
 	flake8 bin/mockmail.py
 
 create-user:
@@ -23,12 +23,6 @@ install:
 	chmod a+x /etc/init.d/mockmail
 	update-rc.d mockmail defaults
 	/etc/init.d/mockmail restart
-
-pystache-install:
-	export TMPDIR=$$(mktemp -d) && \
-		git clone git://github.com/phihag/py3stache.git $${TMPDIR}/pystache-git && \
-		$$(if test "$$(id -u)" -ne 0; then echo sudo; fi;) cp -R $${TMPDIR}/pystache-git/pystache -t /usr/lib/python3/dist-packages/ && \
-		rm -rf $${TMPDIR}
 
 uninstall:
 	-/etc/init.d/mockmail stop
