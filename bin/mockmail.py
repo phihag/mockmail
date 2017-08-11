@@ -253,14 +253,10 @@ class MockmailSmtpServer(smtpd.SMTPServer):
 
     # kwargs for python 3.6 where additional options are present
     def process_message(self, peer, mailfrom, rcpttos, data, **kwargs):
-        try:
-            if isinstance(data, bytes):
-                data = data.decode('utf8', 'replace')
-            mail = parseMail(peer, mailfrom, rcpttos, data)
-            self._ms.add(mail)
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
+        if isinstance(data, bytes):
+            data = data.decode('utf8', 'replace')
+        mail = parseMail(peer, mailfrom, rcpttos, data)
+        self._ms.add(mail)
 
 
 class MockmailHttpServer(HTTPServer):
