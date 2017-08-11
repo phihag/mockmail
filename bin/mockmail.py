@@ -27,8 +27,10 @@ import signal
 import smtpd
 import socket
 import sys
-import time
+import sys
 import threading
+import time
+
 from optparse import OptionParser
 
 try:
@@ -245,12 +247,21 @@ def parseMail(peer, mailfrom, rcpttos, data):
 class MockmailSmtpServer(smtpd.SMTPServer):
     def __init__(self, localaddr, port, ms):
         self._ms = ms
+        # In python 3, '' cannot be given anymore to listen to anything
+        if localaddr == '' and sys.version_info[0] >= 3:
+            localaddr = '::'
         smtpd.SMTPServer.__init__(self, (localaddr, port), None)
 
     # kwargs for python 3.6 where additional options are present
     def process_message(self, peer, mailfrom, rcpttos, data, **kwargs):
-        mail = parseMail(peer, mailfrom, rcpttos, data)
-        self._ms.add(mail)
+        try:
+            if isinstance(data, bytes):
+                data = data.decode('utf8', 'replace')
+            mail = parseMail(peer, mailfrom, rcpttos, data)
+            self._ms.add(mail)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
 
 
 class MockmailHttpServer(HTTPServer):
@@ -576,7 +587,7 @@ def main():
         return
 
     config = {
-        'smtpaddr': '::',     # IP address to bind the SMTP port on. The default allows anyone to send you emails.
+        'smtpaddr': '',     # IP address to bind the SMTP port on. The default allows anyone to send you emails.
         'smtpport': 2525,     # SMTP port number. On unixoid systems, you will need superuser privileges to bind to a port < 1024
         'httpaddr': '',       # IP address to bind the web interface on. The default allows anyone to see your mail.
         'httpport': 2580,     # Port to bind the web interface on. You may want to configure your webserver on port 80 to proxy the connection.

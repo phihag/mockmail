@@ -1,5 +1,5 @@
 {
-	"smtpaddr": "::",
+	"smtpaddr": "",
 	"smtpport": 2525,
 	"httpaddr": "127.0.0.1",
 	"httpport": 2580,
