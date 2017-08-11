@@ -27,7 +27,6 @@ import signal
 import smtpd
 import socket
 import sys
-import sys
 import threading
 import time
 
