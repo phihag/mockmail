@@ -247,7 +247,8 @@ class MockmailSmtpServer(smtpd.SMTPServer):
         self._ms = ms
         smtpd.SMTPServer.__init__(self, (localaddr, port), None)
 
-    def process_message(self, peer, mailfrom, rcpttos, data):
+    # kwargs for python 3.6 where additional options are present
+    def process_message(self, peer, mailfrom, rcpttos, data, **kwargs):
         mail = parseMail(peer, mailfrom, rcpttos, data)
         self._ms.add(mail)
 
