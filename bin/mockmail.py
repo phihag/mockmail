@@ -234,7 +234,7 @@ def parseMail(peer, mailfrom, rcpttos, data):
 
     envelope = (
         ('MAIL-FROM: %s\n' % mailfrom) +
-        ('\n'.join('RCPT-TO: %s' % rcpto for rcpto in rcpttos)) 
+        ('\n'.join('RCPT-TO: %s' % rcpto for rcpto in rcpttos))
     )
     simple_to = (
         (rcpttos[0] if len(rcpttos) > 0 else '<nobody>')
