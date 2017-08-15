@@ -235,7 +235,7 @@ def parseMail(peer, mailfrom, rcpttos, data):
     res = {
         'peer_ip': peer[0],
         'peer_port': peer[1],
-        'from': mailfrom,
+        'from': msg['from'] or mailfrom,
         'simple_to': rcpttos[0] if len(rcpttos) > 0 else '<nobody>',
         'rawdata': data,
         'subject': subject,
