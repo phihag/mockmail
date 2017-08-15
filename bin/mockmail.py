@@ -29,6 +29,7 @@ import socket
 import sys
 import threading
 import time
+import traceback
 
 from optparse import OptionParser
 
@@ -181,6 +182,7 @@ class MailStore(object):
 
 
 def _decodeMailHeader(rawVal):
+    print('decodeMailHeader: %r' % rawVal)
     return ''.join(
         v if enc is None else v.decode(enc)
         for v, enc in email.header.decode_header(rawVal))
@@ -255,7 +257,11 @@ class MockmailSmtpServer(smtpd.SMTPServer):
     def process_message(self, peer, mailfrom, rcpttos, data, **kwargs):
         if isinstance(data, bytes):
             data = data.decode('utf8', 'replace')
-        mail = parseMail(peer, mailfrom, rcpttos, data)
+        try:
+            mail = parseMail(peer, mailfrom, rcpttos, data)
+        except Exception:
+            traceback.print_exc()
+            raise
         self._ms.add(mail)
 
 
