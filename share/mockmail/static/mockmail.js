@@ -32,19 +32,39 @@ function rawBody_toggle() {
 	}
 }
 
+function rawEnvelope_toggle() {
+	var link = $(this);
+	var emailHeader = link.parent().parent().children('.header');
+	var rawDisplay = emailHeader.children('.envelope_raw');
+	if (rawDisplay.length > 0) {
+		rawDisplay.remove();
+		link.text('Show envelope');
+	} else {
+		var rawDisplay = $('<div class="raw envelope_raw"></div>');
+		rawDisplay.text(emailHeader.attr('data-envelope'));
+		emailHeader.prepend(rawDisplay);
+		link.text('Hide envelope');
+	}
+}
+
 $(function() {
 	$('.email').each(function (i, email_container) {
 		var commandlinks = $('<div class="commandlinks"></div>');
 		$(email_container).prepend(commandlinks);
 
-		var rb_link = $('<a href="#"></a>');
-		rb_link.text('Show raw body');
-		rb_link.click(rawBody_toggle);
-		$(commandlinks).prepend(rb_link);
+		var re_link = $('<a href="#"></a>');
+		re_link.text('Show envelope');
+		re_link.click(rawEnvelope_toggle);
+		$(commandlinks).append(re_link);
 
 		var rh_link = $('<a href="#"></a>');
 		rh_link.text('Show raw header');
 		rh_link.click(rawHeader_toggle);
-		$(commandlinks).prepend(rh_link);
+		$(commandlinks).append(rh_link);
+
+		var rb_link = $('<a href="#"></a>');
+		rb_link.text('Show raw body');
+		rb_link.click(rawBody_toggle);
+		$(commandlinks).append(rb_link);
 	});
 });

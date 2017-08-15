@@ -7,11 +7,17 @@ dt {float: left; margin-right: 0.8em; min-width: 5em;}
 	float: right;
 }
 .commandlinks>a {
-	margin-bottom: 0.5em;
+	margin-bottom: 0.8em;
 	display: block;
 	color: #005090; text-decoration: none;}
 .commandlinks>a:active {color: #c04;}
-.header_raw {margin-bottom: 2em;}
+
+.header_raw {
+	margin-bottom: 2em;
+}
+.envelope_raw {
+	margin-bottom: 1em;
+}
 
 .raw {white-space: pre; font-family: monospace;}
 .body {white-space: pre;}

@@ -232,11 +232,25 @@ def parseMail(peer, mailfrom, rcpttos, data):
         else '[mockmail: no subject]'
     )
 
+    envelope = (
+        ('MAIL-FROM: %s\n' % mailfrom) +
+        ('\n'.join('RCPT-TO: %s' % rcpto for rcpto in rcpttos)) 
+    )
+    simple_to = (
+        (rcpttos[0] if len(rcpttos) > 0 else '<nobody>')
+        if msg['to'] is None
+        else msg['to']
+    )
+    peer_formatted_ip = ('[%s]' % peer[0] if ':' in peer[0] else peer[0])
+    peer_str = '%s:%s' % (peer_formatted_ip, peer[1])
+
     res = {
+        'peer_str': peer_str,
         'peer_ip': peer[0],
         'peer_port': peer[1],
+        'envelope': envelope,
         'from': msg['from'] or mailfrom,
-        'simple_to': rcpttos[0] if len(rcpttos) > 0 else '<nobody>',
+        'simple_to': simple_to,
         'rawdata': data,
         'subject': subject,
         'rawheader': rawHeader,
