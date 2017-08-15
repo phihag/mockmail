@@ -182,7 +182,6 @@ class MailStore(object):
 
 
 def _decodeMailHeader(rawVal):
-    print('decodeMailHeader: %r' % rawVal)
     return ''.join(
         v if enc is None else v.decode(enc)
         for v, enc in email.header.decode_header(rawVal))
@@ -227,7 +226,11 @@ def parseMail(peer, mailfrom, rcpttos, data):
     receivedAt = datetime.datetime.now(_Local)
     receivedAtStr = receivedAt.strftime('%Y-%m-%d %H:%M:%S %Z')
 
-    subject = _decodeMailHeader(msg['subject'])
+    subject = (
+        _decodeMailHeader(msg['subject'])
+        if msg['subject']
+        else '[mockmail: no subject]'
+    )
 
     res = {
         'peer_ip': peer[0],
